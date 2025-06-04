@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Vanilla JS Example</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.fluid.classless.min.css">
+    <style>
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        .sortable::after {
+            content: "";
+            margin-left: 5px;
+        }
+        .sortable.asc::after {
+            content: "↑";
+        }
+        .sortable.desc::after {
+            content: "↓";
+        }
+        th {
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+<main>
+    <div>
+        <h1>Vanilla JS Example</h1>
+        <hr>
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+            <button id="fetch-users">Fetch Users</button>
+            <div>
+                <label for="gender-filter">Filtrer par genre:</label>
+                <select id="gender-filter">
+                    <option value="all">Tous</option>
+                    <option value="male">Hommes</option>
+                    <option value="female">Femmes</option>
+                </select>
+            </div>
+            <div>
+                <label for="name-search">Rechercher par nom:</label>
+                <input type="text" id="name-search" placeholder="Entrez un nom...">
+            </div>
+        </div>
+    </div>
+    <table id="tbl-users">
+        <thead>
+        <tr>
+            <th>Photo</th>
+            <th>Nom</th>
+            <th>Email</th>
+            <th>Tel</th>
+            <th class="sortable" id="sort-age">Age</th>
+            <th>Genre</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</main>
+
+<script>
+    // Variables globales
+    let allUsers = [];
+    let currentFilter = 'all';
+    let sortState = 'none'; // 'none', 'asc', 'desc'
+    let searchTerm = '';
+    
+    // Initialisation du sélecteur de filtre
+    const genderFilter = document.getElementById('gender-filter');
+    genderFilter.addEventListener('change', (event) => {
+        currentFilter = event.target.value;
+        refreshTable();
+    });
+
+    // Initialisation de la recherche par nom
+    const nameSearch = document.getElementById('name-search');
+    nameSearch.addEventListener('input', (event) => {
+        searchTerm = event.target.value.toLowerCase();
+        refreshTable();
+    });
+
+    // Initialisation du tri par âge
+    const ageHeader = document.getElementById('sort-age');
+    ageHeader.addEventListener('click', function() {
+        // Changer l'état du tri à chaque clic
+        if (sortState === 'none') {
+            sortState = 'asc';
+            this.className = 'sortable asc';
+        } else if (sortState === 'asc') {
+            sortState = 'desc';
+            this.className = 'sortable desc';
+        } else {
+            sortState = 'none';
+            this.className = 'sortable';
+        }
+        refreshTable();
+    });
+
+    // Fonction pour récupérer les utilisateurs
+    let button = document.getElementById('fetch-users');
+    button.addEventListener('click', () => {
+        let api = "https://randomuser.me/api/?results=20";
+        fetch(api)
+        .then(response => response.json())
+        .then(data => {
+            allUsers = [...allUsers, ...data.results];
+            refreshTable();
+        })
+        .catch(error => console.log(error));
+    });
+
+    // Fonction pour rafraîchir l'affichage du tableau
+    function refreshTable() {
+        let filteredByGender = filterUsers(allUsers, currentFilter);
+        let filteredByName = filterByName(filteredByGender, searchTerm);
+        let sortedUsers = sortUsers(filteredByName, sortState);
+        displayUsers(sortedUsers);
+    }
+
+    // Fonction pour filtrer les utilisateurs par genre
+    function filterUsers(users, filter) {
+        if (filter === 'all') {
+            return users;
+        }
+        return users.filter(user => user.gender === filter);
+    }
+
+    // Fonction pour filtrer les utilisateurs par nom
+    function filterByName(users, search) {
+        if (!search || search === '') {
+            return users;
+        }
+        const searchTerms = search.split(' ').map(word =>  word.toLowerCase())
+        return users.filter(user => {
+            return searchTerms.every(term => user.name.first.toLowerCase().startsWith(term)) ||
+                searchTerms.every(terms => user.name.last.toLowerCase().startsWith(terms));
+        });
+    }
+
+    // Fonction pour trier les utilisateurs
+    function sortUsers(users, sortState) {
+        if (sortState === 'none') {
+            return users;
+        }
+        
+        return [...users].sort((a, b) => {
+            if (sortState === 'asc') {
+                return a.dob.age - b.dob.age;
+            } else {
+                return b.dob.age - a.dob.age;
+            }
+        });
+    }
+
+    // Fonction pour afficher les utilisateurs
+    function displayUsers(users) {
+        const tbody = document.querySelector('#tbl-users tbody');
+        // Vider le tableau avant d'ajouter de nouvelles lignes
+        tbody.innerHTML = '';
+
+        users.forEach(user => {
+            const row = document.createElement('tr');
+
+            const photoCell = document.createElement('td');
+            const img = document.createElement('img');
+            img.src = user.picture.thumbnail;
+            img.alt = `Photo de ${user.name.first} ${user.name.last}`;
+            img.style.borderRadius = '50%';
+            photoCell.appendChild(img);
+
+            // Nom
+            const nameCell = document.createElement('td');
+            nameCell.textContent = `${user.name.first} ${user.name.last}`;
+
+            // Email
+            const emailCell = document.createElement('td');
+            emailCell.textContent = user.email;
+
+            // Téléphone
+            const phoneCell = document.createElement('td');
+            phoneCell.textContent = user.phone;
+
+            const ageCell = document.createElement('td');
+            ageCell.textContent = user.dob.age;
+
+            const genderCell = document.createElement('td');
+            genderCell.textContent = user.gender === 'male' ? '👨' : '👩';
+
+            // Ajout des cellules à la ligne
+            row.appendChild(photoCell);
+            row.appendChild(nameCell);
+            row.appendChild(emailCell);
+            row.appendChild(phoneCell);
+            row.appendChild(ageCell);
+            row.appendChild(genderCell);
+
+            // Ajout de la ligne au tableau
+            tbody.appendChild(row);
+        });
+    }
+</script>
+</body>
+</html>
