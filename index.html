@@ -136,11 +136,16 @@
         if (!search || search === '') {
             return users;
         }
-        const searchTerms = search.split(' ').map(word =>  word.toLowerCase())
+        const searchTerms = Sanitise(search).replace(/[^a-zA-Z0-9\s]/g,'').split(' ');
         return users.filter(user => {
-            return searchTerms.every(term => user.name.first.toLowerCase().startsWith(term)) ||
-                searchTerms.every(terms => user.name.last.toLowerCase().startsWith(terms));
+            const firstName = Sanitise(user.name.first);
+            const lastName = Sanitise(user.name.last);
+            return searchTerms.every(term => firstName.startsWith(term) || lastName.startsWith(term));
         });
+    }
+
+    function Sanitise(str) {
+        return str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
 
     // Fonction pour trier les utilisateurs
@@ -148,14 +153,14 @@
         if (sortState === 'none') {
             return users;
         }
-        
-        return [...users].sort((a, b) => {
+        return users.toSorted((a,b) => {
             if (sortState === 'asc') {
-                return a.dob.age - b.dob.age;
+                return  a.dob.age - b.dob.age
             } else {
-                return b.dob.age - a.dob.age;
+                return  b.dob.age - a.dob.age
             }
-        });
+        })
+
     }
 
     // Fonction pour afficher les utilisateurs
@@ -186,9 +191,11 @@
             const phoneCell = document.createElement('td');
             phoneCell.textContent = user.phone;
 
+            // Age
             const ageCell = document.createElement('td');
             ageCell.textContent = user.dob.age;
 
+            // Genre
             const genderCell = document.createElement('td');
             genderCell.textContent = user.gender === 'male' ? '👨' : '👩';
 
