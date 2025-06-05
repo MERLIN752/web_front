@@ -153,12 +153,10 @@
         if (sortState === 'none') {
             return users;
         }
+        let multiplier;
+        if (sortState === 'asc') {multiplier = 1;} else {multiplier = -1;}
         return users.toSorted((a,b) => {
-            if (sortState === 'asc') {
-                return  a.dob.age - b.dob.age
-            } else {
-                return  b.dob.age - a.dob.age
-            }
+            return  (a.dob.age - b.dob.age) * multiplier;
         })
 
     }
